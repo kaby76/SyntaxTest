@@ -1,0 +1,209 @@
+﻿
+include "CPU.inc.asm"
+
+macro MultTest {
+	LD32	A, r4
+	LD32	B, r6
+
+	Mul32
+
+	ST32	r8, C
+
+	halt
+
+	Int32 0xAAAAAAAA
+A:	Int32 1965
+	Int32 0xBBBBBBBB
+B:	Int32 2022
+	Int32 0xCCCCCCCC
+C:	Int32 0x12345678 ; should be: 3C A06E
+	Int32 0xFFFFFFFF
+}
+
+macro DivTest {
+	LD32	A, r4
+	LD32	B, r6
+
+	Div32
+
+	ST32	r6, C
+	ST32	r8,	D
+
+	halt
+
+	Int32 0xAAAAAAAA
+A:	Int32 5
+	Int32 0xBBBBBBBB
+B:	Int32 25
+	Int32 0xCCCCCCCC
+C:	Int32 0
+	Int32 0xDDDDDDDD
+D:	Int32 0
+	Int32 0xFFFFFFFF
+}
+
+macro DivTest2 {
+	LI		0, r1
+	ST		r1, count
+loop:
+	LI		1, r1
+	LD		count, r2
+	shl		r2, r2
+	LI		dividend, r3
+	add		r2, r3
+	ld		r3, r6
+	add		r1, r3
+	ld		r3, r7
+	LI		divisor, r3
+	add		r2, r3
+	ld		r3, r4
+	add		r1, r3
+	ld		r3, r5
+
+	;halt
+	Div32
+
+	LI		1, r1
+	LD		count, r2
+	shl		r2, r2
+	LI		quotient, r3
+	add		r2, r3
+	ld		r3, r4
+	sub		r6, r4
+	JNZ		errorResult
+	add		r1, r3
+	ld		r3, r4
+	sub		r7, r4
+	JNZ		errorResult
+	LI		remainder, r3
+	add		r2, r3
+	ld		r3, r4
+	sub		r8, r4
+	JNZ		errorResult
+	add		r1, r3
+	ld		r3, r4
+	sub		r9, r4
+	JNZ		errorResult
+
+	LD		count, r2
+	add		r1, r2
+	ST		r2, count
+	LI		(divisor - dividend) / 2, r3
+	sub		r2, r3
+	JNZ		loop
+
+	JMP		end
+
+errorResult:
+	LD		count, r2
+	LI		0xEEEE >> 1, r0
+	shl		r0, r0
+	halt
+
+dividend:
+	Int32	12
+	Int32	25
+	Int32	1001
+	Int32	2022
+	Int32	13
+
+divisor:
+	Int32	3
+	Int32	5
+	Int32	10
+	Int32	1965
+	Int32	2
+
+quotient:
+	Int32	4
+	Int32	5
+	Int32	100
+	Int32	1
+	Int32	6
+
+remainder:
+	Int32	0
+	Int32	0
+	Int32	1
+	Int32	57
+	Int32	1
+
+count:
+	Int16	0
+
+	if((divisor - dividend) != (quotient - divisor) || (divisor - dividend) != (remainder - quotient) || (divisor - dividend) != (count - remainder)) {
+		error "Different number of elements in dividend, divisor, quotient, remainder arrays"
+	}
+end:
+	LI		0, r0
+	halt
+}
+
+macro Bin2BCDTest {
+	LD32	A, r4
+
+	Bin2BCD
+
+	ST		r8, B
+	ST		r7, C
+	ST		r6, D
+
+	halt
+
+	Int32 0xAAAAAAAA
+A:	Int32 -314 ;1234567890 ;2147483647 ;234567890
+	Int32 0xBBBBBBBB
+B:	Int16 0
+C:	Int16 0
+D:	Int16 0
+	Int32 0xFFFFFFFF
+}
+
+macro Bin2BCDTest2 {
+	LI		1000, r1		; set count
+	ST		r1, count
+
+	LI32	0, r4			; A = 0
+	ST32	r4, A
+	;halt
+
+start:
+	LD		count, r2
+	LI		1, r0
+	sub		r0, r2
+	ST		r2, count
+	JN		end
+
+	Bin2BCD
+	ST		r8, B
+	ST		r7, C
+	ST		r6, D
+
+	LD32	A, r4
+	LI		0, r0
+	ad1		r0, r4
+	adc		r0, r5
+	ST32	r4, A
+	JMP		start
+
+end:
+	halt
+
+count:
+	Int16 0xFFFF
+	Int32 0xAAAAAAAA
+A:	Int32 0
+	Int32 0xBBBBBBBB
+B:	Int16 0
+C:	Int16 0
+D:	Int16 0
+	Int32 0xFFFFFFFF
+}
+
+macro main {
+	;MultTest
+	;DivTest
+	;DivTest2
+	;Bin2BCDTest
+	Bin2BCDTest2
+}
